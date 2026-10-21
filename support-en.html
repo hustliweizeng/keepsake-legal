@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Keepsake · Support</title>
+<style>
+  :root{--fg:#1c1c1e;--fg2:#3a3a3c;--bg:#fff;--muted:#8e8e93;--line:#e5e5ea;--accent:#0a84ff}
+  @media (prefers-color-scheme:dark){:root{--fg:#f2f2f7;--fg2:#d1d1d6;--bg:#000;--muted:#98989d;--line:#2c2c2e}}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--fg);
+       font:16px/1.75 -apple-system,BlinkMacSystemFont,"Helvetica Neue",sans-serif;
+       -webkit-text-size-adjust:100%}
+  main{max-width:720px;margin:0 auto;padding:40px 22px 80px}
+  h1{font-size:28px;line-height:1.3;margin:0 0 6px;letter-spacing:-.02em}
+  .sub{color:var(--muted);font-size:14px;margin:0 0 32px}
+  h2{font-size:19px;margin:34px 0 10px;letter-spacing:-.01em}
+  p{margin:0 0 14px;color:var(--fg2)}
+  .q{font-weight:600;color:var(--fg);margin:26px 0 6px;font-size:16px}
+  .card{border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:22px 0}
+  .card strong{color:var(--fg)}
+  hr{border:0;border-top:1px solid var(--line);margin:36px 0}
+  footer{color:var(--muted);font-size:13px}
+  a{color:var(--accent);text-decoration:none}
+  .k{color:var(--fg);font-weight:600}
+  .nav{font-size:14px;margin:0 0 18px}.nav a{color:var(--accent)}
+</style>
+</head>
+<body>
+<main>
+<p class="nav"><a href="index.html">Home</a> · <a href="support.html">中文</a> · <a href="privacy-en.html">Privacy</a></p>
+
+<h1>Keepsake · Support</h1>
+<p class="sub">FAQ and contact · applies to version 0.82 and later</p>
+
+<div class="card">
+  <p><strong>Need a human?</strong></p>
+  <p style="margin-bottom:0">Email <a href="mailto:hustliweizeng@gmail.com">hustliweizeng@gmail.com</a> with your device model,
+  iOS version, app version and what happened. We usually reply within two business days.</p>
+</div>
+
+<h2>FAQ</h2>
+
+<p class="q">1. The home screen shows all zeros</p>
+<p>Look for an orange banner at the top. If it is there, photo access is set to "Limited" — iOS only lets
+Keepsake see the photos you hand-picked. Tap "Allow more photos" and choose "Allow Full Access", or go to
+<span class="k">Settings → Privacy &amp; Security → Photos → Keepsake</span>. The app refreshes by itself when you come back.</p>
+
+<p class="q">2. The first scan is taking a long time</p>
+<p>That is expected. Analyzing tens of thousands of photos happens entirely on this phone, and the screen keeps
+showing progress and how many items have been processed. Later launches only do an incremental comparison.</p>
+
+<p class="q">3. It says "Your library looks clean"</p>
+<p>That message only appears when there is genuinely nothing to clean within the visible library. It is
+suppressed under limited photo access, where the app can only see part of your library.</p>
+
+<p class="q">4. How does the free allowance work</p>
+<p>For similar photos and videos: <strong>the first 50 groups are free, counted per group, cumulative for the
+lifetime of the install</strong> (it does not reset after you delete). Duplicate photos, duplicate videos,
+screenshots, screen recordings, large files and video compression are <strong>free forever, with no limit</strong>.
+After the one-time purchase there are no limits at all.</p>
+
+<p class="q">5. I bought it before — do I pay again on a new phone?</p>
+<p>No. Tap <span class="k">Settings → Restore purchase</span>, or the "Restore purchase" link at the bottom of the
+paywall. It works for the same Apple ID and for Family Sharing members.</p>
+
+<p class="q">6. Can deleted photos be recovered?</p>
+<p>Yes. Keepsake uses the standard system deletion, so photos move to "Recently Deleted" and stay there for
+30 days. You can restore them any time in that window. Keepsake never empties Recently Deleted for you.</p>
+
+<p class="q">7. I deleted thousands of photos but storage did not change</p>
+<p>Because photos in "Recently Deleted" still occupy space. To actually reclaim it, empty Recently Deleted in the
+Photos app. The completion screen separates three numbers: moved to Recently Deleted, actually reclaimed, and
+expected free space after emptying.</p>
+
+<p class="q">8. Are my photos uploaded?</p>
+<p>No. Keepsake contains no networking code; all analysis happens on device. See the
+<a href="privacy-policy-en.html">Privacy Policy</a>.</p>
+
+<p class="q">9. Requirements</p>
+<p>iPhone, iOS 16 or later. Portrait only.</p>
+
+<p class="q">10. The suggested keep is wrong — can I change it?</p>
+<p>Yes. You can pick which photo to keep in every group, or select several. By default, groups that need your
+judgment start unchecked: only what you have actually looked at gets deleted.</p>
+
+<hr>
+<footer>
+  <p>© 2026 weizeng Li · Keepsake</p>
+</footer>
+
+</main>
+</body>
+</html>

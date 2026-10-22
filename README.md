@@ -1,7 +1,7 @@
-# 留真 · 隐私政策与支持 / Keepsake · Privacy & Support
+# 简相册 · 隐私政策与支持 / Simple Album · Privacy & Support
 
-本仓库只存放 **留真（Keepsake）** iOS App 的法律文本页，用于 App Store 审核与用户查阅。
-This repository only hosts the legal pages for the Keepsake iOS app.
+本仓库只存放 **简相册（Simple Album）** iOS App 的法律文本页，用于 App Store 审核与用户查阅。
+This repository only hosts the legal pages for the Simple Album iOS app.
 
 线上地址 / Live site：<https://hustliweizeng.github.io/keepsake-legal/>
 

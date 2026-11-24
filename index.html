@@ -1,62 +1,513 @@
 <!DOCTYPE html>
-<html lang="zh-Hans">
+<html lang="zh-CN">
 <head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>简相册 · 隐私政策与支持 / Simple Album · Privacy &amp; Support</title>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>简相册 - 清理重复与相似照片</title>
+<meta name="description" content="简相册：本地分析，照片不上传。清理重复照片、相似照片、截图与大文件，精度优先，需要判断的一律不预勾。">
+<meta name="theme-color" content="#007AFF">
 <style>
-  :root{--fg:#1c1c1e;--fg2:#3a3a3c;--bg:#fff;--muted:#8e8e93;--line:#e5e5ea;--accent:#0a84ff}
-  @media (prefers-color-scheme:dark){:root{--fg:#f2f2f7;--fg2:#d1d1d6;--bg:#000;--muted:#98989d;--line:#2c2c2e}}
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--fg);
-       font:16px/1.75 -apple-system,BlinkMacSystemFont,"PingFang SC","Helvetica Neue",sans-serif;
-       -webkit-text-size-adjust:100%}
-  main{max-width:720px;margin:0 auto;padding:40px 22px 80px}
-  h1{font-size:28px;line-height:1.3;margin:0 0 6px;letter-spacing:-.02em}
-  .sub{color:var(--muted);font-size:14px;margin:0 0 32px}
-  h2{font-size:19px;margin:36px 0 10px;letter-spacing:-.01em}
-  p{margin:0 0 14px;color:var(--fg2)}
-  .card{border:1px solid var(--line);border-radius:14px;padding:18px 20px;margin:22px 0}
-  .row{display:flex;align-items:baseline;justify-content:space-between;gap:14px;padding:10px 0}
-  .row + .row{border-top:1px solid var(--line)}
-  .row .t{color:var(--fg);font-weight:600}
-  .row .d{color:var(--muted);font-size:13px}
-  hr{border:0;border-top:1px solid var(--line);margin:36px 0}
-  footer{color:var(--muted);font-size:13px}
-  a{color:var(--accent);text-decoration:none}
+  :root{
+    --action:#007AFF; --action-press:#0060DF; --action-soft:#EAF3FF;
+    --safe:#34C759; --safe-soft:#E9F9EF; --vault:#AF52DE; --vault-soft:#F5EAFD;
+    /* 警示橙：仅用于「最近删除尚未真正释放」这一处客观说明，不表示删除功能本身危险 */
+    --caution:#F5A623; --caution-soft:#FFF4E2;
+    --ink:#0B2137; --slate:#12304F;
+    --t1:#111114; --t2:#4A5568; --t3:#8A94A6;
+    --page:#F2F2F7; --card:#FFFFFF; --line:#E6E9EF;
+    --shadow:0 8px 30px rgba(11,33,55,.08);
+    --max:1080px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    font-family:-apple-system,BlinkMacSystemFont,"SF Pro SC","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;
+    color:var(--t1);background:var(--page);line-height:1.65;-webkit-font-smoothing:antialiased;
+  }
+  .wrap{max-width:var(--max);margin:0 auto;padding:0 24px}
+  a{color:inherit;text-decoration:none}
+  button{font-family:inherit;cursor:pointer}
+
+  /* ---------- 顶栏 ---------- */
+  header{
+    position:sticky;top:0;z-index:50;background:rgba(242,242,247,.86);
+    backdrop-filter:saturate(180%) blur(18px);-webkit-backdrop-filter:saturate(180%) blur(18px);
+    border-bottom:1px solid var(--line);
+  }
+  .nav{display:flex;align-items:center;justify-content:space-between;height:60px}
+  .brand{display:flex;align-items:center;gap:10px;font-weight:600;font-size:17px;color:var(--ink)}
+  .brand-logo{
+    width:32px;height:32px;border-radius:9px;background:linear-gradient(145deg,#007AFF,#0060DF);
+    display:grid;place-items:center;box-shadow:0 3px 8px rgba(0,122,255,.3);
+  }
+  .brand-logo svg{width:19px;height:19px}
+  .nav-right{display:flex;align-items:center;gap:18px}
+  .lang{display:flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--card)}
+  .lang button{border:0;background:transparent;padding:6px 12px;font-size:13px;color:var(--t2)}
+  .lang button.on{background:var(--action);color:#fff}
+  .btn{
+    display:inline-flex;align-items:center;justify-content:center;gap:8px;
+    background:var(--action);color:#fff;border:0;border-radius:12px;
+    padding:12px 22px;font-size:15px;font-weight:600;transition:background .18s,transform .18s;
+  }
+  .btn:hover{background:var(--action-press)}
+  .btn:active{transform:scale(.98)}
+  .btn-sm{padding:8px 16px;font-size:13px;border-radius:9px}
+
+  /* ---------- 首屏 ---------- */
+  .hero{padding:72px 0 60px;overflow:hidden}
+  .hero-grid{display:grid;grid-template-columns:1.05fr .95fr;gap:56px;align-items:center}
+  .pill{
+    display:inline-flex;align-items:center;gap:7px;background:var(--safe-soft);color:#1E7A38;
+    padding:6px 13px;border-radius:100px;font-size:13px;font-weight:600;margin-bottom:22px;
+  }
+  .pill .dot{width:7px;height:7px;border-radius:50%;background:var(--safe)}
+  h1{font-size:clamp(34px,4.6vw,54px);line-height:1.15;letter-spacing:-.02em;color:var(--ink);font-weight:700}
+  h1 .accent{color:var(--action)}
+  .hero-sub{font-size:19px;color:var(--t2);margin:20px 0 12px;max-width:520px}
+  .hero-note{font-size:15px;color:var(--t3);max-width:500px;margin-bottom:30px}
+  .hero-cta{display:flex;align-items:center;gap:20px;flex-wrap:wrap}
+  .hero-cta .price{font-size:14px;color:var(--t2)}
+  .hero-cta .price b{color:var(--ink);font-size:17px}
+  .trust{display:flex;gap:22px;margin-top:34px;flex-wrap:wrap}
+  .trust div{display:flex;align-items:center;gap:7px;font-size:13px;color:var(--t2)}
+  .trust svg{width:16px;height:16px;color:var(--safe)}
+
+  /* ---------- 手机示意 ---------- */
+  .phone-stage{display:flex;justify-content:center;position:relative}
+  .phone-stage::before{
+    content:"";position:absolute;width:340px;height:340px;border-radius:50%;
+    background:radial-gradient(circle,rgba(0,122,255,.13),transparent 70%);top:20px;
+  }
+  .phone{
+    position:relative;width:272px;height:552px;background:var(--card);border-radius:42px;
+    border:9px solid #1c1c1e;box-shadow:0 26px 60px rgba(11,33,55,.22);overflow:hidden;z-index:1;
+  }
+  .notch{position:absolute;top:0;left:50%;transform:translateX(-50%);width:104px;height:26px;background:#1c1c1e;border-radius:0 0 16px 16px;z-index:3}
+  .screen{padding:38px 16px 16px;height:100%;background:var(--page);overflow:hidden}
+  .s-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:16px}
+  .s-title{font-size:15px;font-weight:700;color:var(--ink)}
+  .s-gear{width:24px;height:24px;border-radius:50%;background:#E5E8EE;display:grid;place-items:center;color:var(--t3);font-size:13px}
+  .hero-card{background:var(--card);border-radius:18px;padding:18px 16px;box-shadow:var(--shadow);margin-bottom:12px}
+  .hero-label{font-size:11px;color:var(--t3);display:flex;align-items:center;gap:5px}
+  .hero-num{font-size:33px;font-weight:700;color:var(--action);letter-spacing:-.02em;margin:4px 0 1px}
+  .hero-num small{font-size:14px;font-weight:500;color:var(--t3)}
+  .hero-pct{font-size:11px;color:var(--t3)}
+  .hero-btn{background:var(--action);color:#fff;text-align:center;padding:9px;border-radius:10px;font-size:12px;font-weight:600;margin-top:14px}
+  .cat-list{display:flex;flex-direction:column;gap:8px}
+  .cat{background:var(--card);border-radius:13px;padding:11px 13px;display:flex;align-items:center;gap:10px;box-shadow:0 2px 8px rgba(11,33,55,.04)}
+  .cat-ic{width:30px;height:30px;border-radius:9px;display:grid;place-items:center}
+  .cat-ic svg{width:17px;height:17px}
+  .cat-name{font-size:12px;font-weight:600;flex:1}
+  .cat-desc{font-size:10px;color:var(--t3)}
+  .cat-arrow{color:var(--t3);font-size:14px}
+  .s-footer{text-align:center;font-size:9px;color:var(--t3);margin-top:14px}
+
+  /* ---------- 通用 section ---------- */
+  section{padding:78px 0}
+  .sec-head{text-align:center;max-width:640px;margin:0 auto 48px}
+  .kicker{font-size:13px;font-weight:700;color:var(--action);letter-spacing:.08em;text-transform:uppercase;margin-bottom:12px}
+  h2{font-size:clamp(26px,3.4vw,38px);line-height:1.2;color:var(--ink);letter-spacing:-.01em;font-weight:700}
+  .sec-sub{font-size:16px;color:var(--t2);margin-top:14px}
+
+  /* 三件事 */
+  .features{background:var(--card)}
+  .feature-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:22px}
+  .feature{
+    background:var(--page);border-radius:20px;padding:28px 24px;border:1px solid transparent;
+    transition:transform .2s,box-shadow .2s,border-color .2s;
+  }
+  .feature:hover{transform:translateY(-4px);box-shadow:var(--shadow);border-color:var(--line)}
+  .f-num{font-size:12px;font-weight:700;color:var(--t3);letter-spacing:.1em;margin-bottom:16px}
+  .f-ic{width:46px;height:46px;border-radius:13px;display:grid;place-items:center;margin-bottom:18px}
+  .f-ic svg{width:24px;height:24px}
+  .feature h3{font-size:19px;color:var(--ink);margin-bottom:10px;font-weight:650}
+  .feature p{font-size:14px;color:var(--t2)}
+  .feature .tag{display:inline-block;margin-top:14px;font-size:12px;font-weight:600;padding:4px 10px;border-radius:7px}
+
+  /* 两步删除示意 */
+  .ledger{background:var(--card)}
+  .ledger-grid{display:grid;grid-template-columns:1fr 1fr;gap:48px;align-items:center}
+  .ledger-visual{background:var(--page);border-radius:22px;padding:28px;box-shadow:var(--shadow)}
+  .step-row{display:flex;align-items:center;gap:14px;padding:14px 0;border-bottom:1px solid var(--line)}
+  .step-row:last-child{border-bottom:0}
+  .step-badge{width:34px;height:34px;border-radius:50%;display:grid;place-items:center;font-size:13px;font-weight:700;flex-shrink:0}
+  .step-text{flex:1}
+  .step-text b{display:block;font-size:14px;color:var(--ink)}
+  .step-text span{font-size:12px;color:var(--t3)}
+  .step-val{font-size:20px;font-weight:700;color:var(--ink)}
+  .step-val small{font-size:11px;color:var(--t3);font-weight:500}
+  .ledger-copy h2{margin-bottom:16px}
+  .ledger-copy p{font-size:16px;color:var(--t2);margin-bottom:14px}
+  .note-box{background:var(--caution-soft);border-left:3px solid var(--caution);padding:14px 16px;border-radius:0 10px 10px 0;font-size:14px;color:#7A5300;margin-top:20px}
+
+  /* 更多清理项 */
+  .more-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .more-item{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px;display:flex;align-items:center;gap:12px;font-size:14px;font-weight:550;color:var(--ink)}
+  .more-item .m-ic{width:34px;height:34px;border-radius:10px;background:var(--action-soft);display:grid;place-items:center;flex-shrink:0;color:var(--action)}
+  .more-item .m-ic svg{width:18px;height:18px}
+
+  /* 隐私 */
+  .privacy{background:var(--ink);color:#fff}
+  .privacy .kicker{color:#7DB4FF}
+  .privacy h2{color:#fff}
+  .privacy .sec-sub{color:#A9BDD1}
+  .privacy-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-top:44px}
+  .p-card{background:rgba(255,255,255,.07);border:1px solid rgba(255,255,255,.12);border-radius:16px;padding:24px 20px;text-align:center}
+  .p-ic{width:48px;height:48px;border-radius:14px;background:rgba(122,180,255,.16);display:grid;place-items:center;margin:0 auto 14px;color:#7DB4FF}
+  .p-ic svg{width:25px;height:25px}
+  .p-card b{display:block;font-size:15px;margin-bottom:6px}
+  .p-card span{font-size:13px;color:#A9BDD1;line-height:1.5}
+  .privacy-bottom{text-align:center;margin-top:40px;font-size:15px;color:#C9D7E6}
+  .privacy-bottom a{color:#7DB4FF;text-decoration:underline;text-underline-offset:3px}
+
+  /* 定价 */
+  .pricing{background:var(--card)}
+  .price-card{max-width:620px;margin:0 auto;background:var(--page);border-radius:24px;padding:38px 40px;text-align:center;box-shadow:var(--shadow)}
+  .price-badge{display:inline-block;background:var(--action-soft);color:var(--action);font-size:13px;font-weight:700;padding:6px 14px;border-radius:100px;margin-bottom:16px}
+  .price-num{font-size:52px;font-weight:700;color:var(--ink);letter-spacing:-.03em;line-height:1.1}
+  .price-num s{font-size:20px;color:var(--t3);font-weight:500;margin-left:8px}
+  .price-desc{font-size:15px;color:var(--t2);margin:12px 0 6px}
+  .price-split{display:flex;gap:12px;margin:26px 0;text-align:left}
+  .price-col{flex:1;background:var(--card);border-radius:14px;padding:16px}
+  .price-col b{font-size:14px;display:block;margin-bottom:8px}
+  .price-col.free b{color:#1E7A38}
+  .price-col.paid b{color:var(--action)}
+  .price-col ul{list-style:none;font-size:13px;color:var(--t2)}
+  .price-col li{padding:3px 0 3px 16px;position:relative}
+  .price-col li::before{content:"";position:absolute;left:0;top:11px;width:5px;height:5px;border-radius:50%;background:var(--t3)}
+  .price-note{font-size:12px;color:var(--t3);margin-bottom:22px}
+
+  /* 下载 CTA */
+  .cta{text-align:center;padding:76px 0}
+  .cta h2{margin-bottom:16px}
+  .cta p{font-size:16px;color:var(--t2);margin-bottom:28px}
+  .download-btn{background:var(--action);color:#fff;border:0;border-radius:14px;padding:16px 34px;font-size:17px;font-weight:600;display:inline-flex;align-items:center;gap:10px;transition:background .18s,transform .18s}
+  .download-btn:hover{background:var(--action-press)}
+  .download-btn:active{transform:scale(.98)}
+  .download-btn svg{width:20px;height:20px}
+  .cta-note{font-size:13px;color:var(--t3);margin-top:16px}
+
+  /* 页脚 */
+  footer{background:var(--card);border-top:1px solid var(--line);padding:32px 0}
+  .foot{display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;font-size:13px;color:var(--t3)}
+  .foot-links{display:flex;gap:20px}
+  .foot-links a:hover{color:var(--action)}
+
+  /* 语言切换：默认中文，英文隐藏 */
+  html[lang="en"] [lang-zh]{display:none !important}
+  html:not([lang="en"]) [lang-en]{display:none !important}
+
+  @media(max-width:900px){
+    .hero-grid{grid-template-columns:1fr;gap:40px;text-align:center}
+    .hero-sub,.hero-note{margin-left:auto;margin-right:auto}
+    .hero-cta,.trust{justify-content:center}
+    .feature-grid,.privacy-grid{grid-template-columns:repeat(2,1fr)}
+    .ledger-grid{grid-template-columns:1fr;gap:32px}
+    .more-grid{grid-template-columns:repeat(2,1fr)}
+  }
+  @media(max-width:560px){
+    section{padding:56px 0}
+    .hero{padding:48px 0 40px}
+    .feature-grid,.privacy-grid,.more-grid{grid-template-columns:1fr}
+    .price-split{flex-direction:column}
+    .price-card{padding:28px 22px}
+    .nav-right{gap:10px}
+    .btn-sm{padding:7px 12px}
+    .brand{font-size:15px}
+  }
 </style>
 </head>
 <body>
-<main>
 
-<h1>简相册 · 隐私政策与支持</h1>
-<p class="sub">Simple Album · Privacy Policy &amp; Support</p>
+<header>
+  <div class="wrap nav">
+    <a href="#top" class="brand">
+      <span class="brand-logo">
+        <svg viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="3"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg>
+      </span>
+      <span lang-zh>简相册</span><span lang-en>Simple Album</span>
+    </a>
+    <div class="nav-right">
+      <div class="lang">
+        <button id="btnZh" class="on" onclick="setLang('zh')">中</button>
+        <button id="btnEn" onclick="setLang('en')">EN</button>
+      </div>
+      <a href="#download" class="btn btn-sm"><span lang-zh>下载</span><span lang-en>Download</span></a>
+    </div>
+  </div>
+</header>
 
-<div class="card">
-  <p><strong>简相册（Simple Album）不做任何文件上传。</strong>所有照片分析都在你的设备上完成，
-  App 不含网络代码，也不收集任何个人数据。下面两份文档是完整的说明。</p>
-  <p style="margin-bottom:0"><strong>Simple Album never uploads anything.</strong> All photo analysis runs on your
-  device. The app contains no networking code and collects no personal data.</p>
-</div>
+<main id="top">
 
-<h2>中文</h2>
-<div class="card">
-  <div class="row"><span class="t"><a href="privacy.html">隐私政策</a></span><span class="d">Privacy Policy</span></div>
-  <div class="row"><span class="t"><a href="support.html">支持与常见问题</a></span><span class="d">Support &amp; FAQ</span></div>
-</div>
+  <!-- 首屏 -->
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div>
+        <div class="pill"><span class="dot"></span><span lang-zh>照片从头到尾只在你的 iPhone 上</span><span lang-en>Your photos never leave your iPhone</span></div>
+        <h1>
+          <span lang-zh>不喊「删」，<br>它帮你<span class="accent">「留」</span>。</span>
+          <span lang-en>It doesn't shout "delete".<br>It helps you <span class="accent">keep</span>.</span>
+        </h1>
+        <p class="hero-sub" lang-zh>三万张照片里，你其实只需要做一件事：把不产生回忆的清掉，同时确保一张该留的都没少。</p>
+        <p class="hero-sub" lang-en>Out of 30,000 photos, there's really one job: clear what holds no memory, without losing a single one that does.</p>
+        <p class="hero-note" lang-zh>本地分析 · 照片不上传 · 需要判断的一律不预勾</p>
+        <p class="hero-note" lang-en>On-device analysis · Nothing uploaded · Anything needing judgment starts unchecked</p>
+        <div class="hero-cta">
+          <a href="#download" class="btn">
+            <span lang-zh>下载简相册</span><span lang-en>Download Simple Album</span>
+          </a>
+          <div class="price">
+            <span lang-zh>一次买断 </span><span lang-en>One-time </span><b>¥5.00</b>
+            <span lang-zh>，不订阅</span><span lang-en>, no subscription</span>
+          </div>
+        </div>
+        <div class="trust">
+          <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span lang-zh>零网络代码</span><span lang-en>No networking code</span></div>
+          <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span lang-zh>无账号无广告</span><span lang-en>No account, no ads</span></div>
+          <div><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M20 6L9 17l-5-5"/></svg><span lang-zh>精度优先</span><span lang-en>Accuracy first</span></div>
+        </div>
+      </div>
 
-<h2>English</h2>
-<div class="card">
-  <div class="row"><span class="t"><a href="privacy-en.html">Privacy Policy</a></span><span class="d">English</span></div>
-  <div class="row"><span class="t"><a href="support-en.html">Support &amp; FAQ</a></span><span class="d">English</span></div>
-</div>
+      <!-- 纯 CSS 手机示意 -->
+      <div class="phone-stage">
+        <div class="phone">
+          <div class="notch"></div>
+          <div class="screen">
+            <div class="s-head">
+              <div class="s-title" lang-zh>可以腾出</div><div class="s-title" lang-en>Could reclaim</div>
+              <div class="s-gear">⚙</div>
+            </div>
+            <div class="hero-card">
+              <div class="hero-label"><span lang-zh>可腾出 · 按画面对比判断</span><span lang-en>Could free · judge by comparison</span></div>
+              <div class="hero-num">34.9<small> GB</small></div>
+              <div class="hero-pct" lang-zh>占相册 12%</div><div class="hero-pct" lang-en>12% of your library</div>
+              <div class="hero-btn" lang-zh>一键清理</div><div class="hero-btn" lang-en>Clean up</div>
+            </div>
+            <div class="cat-list">
+              <div class="cat">
+                <div class="cat-ic" style="background:var(--action-soft);color:var(--action)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="18" height="18" rx="2"/><path d="M3 9h18M9 21V9"/></svg></div>
+                <div style="flex:1"><div class="cat-name" lang-zh>重复照片</div><div class="cat-name" lang-en>Duplicates</div><div class="cat-desc" lang-zh>内容完全一致，可直接清</div><div class="cat-desc" lang-en>Identical content</div></div>
+                <div class="cat-arrow">›</div>
+              </div>
+              <div class="cat">
+                <div class="cat-ic" style="background:var(--vault-soft);color:var(--vault)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="12" height="12" rx="2"/><rect x="9" y="9" width="12" height="12" rx="2"/></svg></div>
+                <div style="flex:1"><div class="cat-name" lang-zh>相似照片与视频</div><div class="cat-name" lang-en>Similar photos</div><div class="cat-desc" lang-zh>按组看，按组留</div><div class="cat-desc" lang-en>Review by group</div></div>
+                <div class="cat-arrow">›</div>
+              </div>
+              <div class="cat">
+                <div class="cat-ic" style="background:var(--safe-soft);color:#1E7A38"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8M12 18v3"/></svg></div>
+                <div style="flex:1"><div class="cat-name" lang-zh>截图与录屏</div><div class="cat-name" lang-en>Screenshots</div><div class="cat-desc" lang-zh>按系统标记找，不猜</div><div class="cat-desc" lang-en>Found by system flags</div></div>
+                <div class="cat-arrow">›</div>
+              </div>
+            </div>
+            <div class="s-footer" lang-zh>全部分析在本机完成 · 照片不会上传</div>
+            <div class="s-footer" lang-en>All analysis on device · Nothing uploaded</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
 
-<hr>
-<footer>
-  简相册 / Simple Album · 本页仅用于 App Store 审核与用户查阅，无追踪、无 Cookie、无第三方脚本。<br>
-  This page is for App Store review and user reference only. No tracking, no cookies, no third-party scripts.
-</footer>
+  <!-- 三件事 -->
+  <section class="features" id="features">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="kicker" lang-zh>它做三件事</div><div class="kicker" lang-en>Three things it does</div>
+        <h2 lang-zh>把「删照片」变成「做选择」</h2>
+        <h2 lang-en>Turning "deleting photos" into making choices</h2>
+      </div>
+      <div class="feature-grid">
+        <div class="feature">
+          <div class="f-num">01</div>
+          <div class="f-ic" style="background:var(--action-soft);color:var(--action)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2"/><circle cx="8.5" cy="8.5" r="1.5"/><path d="M21 15l-5-5L5 21"/></svg></div>
+          <h3 lang-zh>可证明的重复，直接清</h3><h3 lang-en>Provable duplicates, cleared</h3>
+          <p lang-zh>同一张存了两份、导出三次、聊天里另存一遍——内容与留下的那张完全一致，多一份就是浪费空间。首页一键清理，确认后按一次删除。</p>
+          <p lang-en>The same photo saved twice, exported three times, re-saved from a chat. Identical to the copy you keep, so the extra is pure waste. Clear them from the home screen in one pass.</p>
+          <span class="tag" style="background:var(--action-soft);color:var(--action)" lang-zh>完全免费 · 不限次数</span>
+          <span class="tag" style="background:var(--action-soft);color:var(--action)" lang-en>Free · unlimited</span>
+        </div>
+        <div class="feature">
+          <div class="f-num">02</div>
+          <div class="f-ic" style="background:var(--vault-soft);color:var(--vault)"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="3" width="12" height="12" rx="2"/><rect x="9" y="9" width="12" height="12" rx="2"/></svg></div>
+          <h3 lang-zh>相似照片与视频，按组留</h3><h3 lang-en>Similar photos, reviewed by group</h3>
+          <p lang-zh>连拍里挑一张、同一场景拍了几张、同一段录了两遍。按画面分组，每组给一个建议保留项，剩下的你自己决定。需要判断的组一律不勾选。</p>
+          <p lang-en>Burst frames, several shots of one scene, the same clip recorded twice. Grouped by what's in the picture, with one suggested keep. Anything requiring judgment starts unchecked.</p>
+          <span class="tag" style="background:var(--vault-soft);color:#8E3BB8" lang-zh>可先免费试 50 组</span>
+          <span class="tag" style="background:var(--vault-soft);color:#8E3BB8" lang-en>Try 50 groups free</span>
+        </div>
+        <div class="feature">
+          <div class="f-num">03</div>
+          <div class="f-ic" style="background:var(--safe-soft);color:#1E7A38"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 17l6-6 4 4 8-8"/><path d="M17 7h4v4"/></svg></div>
+          <h3 lang-zh>证明空间真的回来了</h3><h3 lang-en>Proof the space came back</h3>
+          <p lang-zh>很多人删了几千张，一看存储没变就不再试了——因为 iPhone 删除是两段式的。简相册把「已移入最近删除 / 已真正释放 / 清空后预计」三个数说清楚。</p>
+          <p lang-en>Delete thousands, see storage unchanged, give up. Deleting on iPhone happens in two stages. Simple Album separates three numbers so you know exactly where you stand.</p>
+          <span class="tag" style="background:var(--safe-soft);color:#1E7A38" lang-zh>真实账目，不是估算</span>
+          <span class="tag" style="background:var(--safe-soft);color:#1E7A38" lang-en>An honest ledger</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 两段式删除 -->
+  <section class="ledger">
+    <div class="wrap ledger-grid">
+      <div class="ledger-visual">
+        <div class="step-row">
+          <div class="step-badge" style="background:var(--action-soft);color:var(--action)">1</div>
+          <div class="step-text"><b lang-zh>已移入「最近删除」</b><b lang-en>Moved to Recently Deleted</b><span lang-zh>照片还在，30 天内仍占空间</span><span lang-en>Still there, still using space for 30 days</span></div>
+          <div class="step-val">3,412<small lang-zh> 张</small><small lang-en> photos</small></div>
+        </div>
+        <div class="step-row">
+          <div class="step-badge" style="background:var(--safe-soft);color:#1E7A38">2</div>
+          <div class="step-text"><b lang-zh>已经真正释放</b><b lang-en>Actually reclaimed</b><span lang-zh>清空「最近删除」之后的空间</span><span lang-en>After you empty Recently Deleted</span></div>
+          <div class="step-val">21.4<small> GB</small></div>
+        </div>
+        <div class="step-row">
+          <div class="step-badge" style="background:var(--vault-soft);color:#8E3BB8">3</div>
+          <div class="step-text"><b lang-zh>清空后预计剩余</b><b lang-en>Expected free space</b><span lang-zh>回来还会再核对一次</span><span lang-en>Come back and it checks again</span></div>
+          <div class="step-val">34.9<small> GB</small></div>
+        </div>
+      </div>
+      <div class="ledger-copy">
+        <div class="kicker" lang-zh>眼见为实</div><div class="kicker" lang-en>Show, don't tell</div>
+        <h2 lang-zh>删了，空间没变？<br>因为还没真正释放。</h2>
+        <h2 lang-en>Deleted, but storage unchanged?<br>Because it's not reclaimed yet.</h2>
+        <p lang-zh>iPhone 的删除是两段式的：照片进入「最近删除」后，30 天内仍然占着空间。所以很多人兴冲冲删了几千张，一看存储数字纹丝不动，就再也不试了。</p>
+        <p lang-en>Deleting on iPhone is two-stage: photos stay in "Recently Deleted" and keep occupying space for 30 days. That's why people delete thousands, see no change in storage, and never try again.</p>
+        <p lang-zh>简相册不把这两件事混为一谈。它分别告诉你移走了多少、真正释放了多少、清空之后预计还剩多少。清空完再回来，它还会重新核对一遍。</p>
+        <p lang-en>Simple Album doesn't blur the two. It tells you what moved, what was actually reclaimed, and what to expect after emptying. Come back afterwards and it re-checks.</p>
+        <div class="note-box" lang-zh>清理后请记得清空「最近删除」，空间才会真正回来。</div>
+        <div class="note-box" lang-en>Empty "Recently Deleted" afterwards — that's when the space actually comes back.</div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 更多清理项 -->
+  <section id="more">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="kicker" lang-zh>顺手也能清</div><div class="kicker" lang-en>Also handled</div>
+        <h2 lang-zh>不止重复和相似</h2><h2 lang-en>More than duplicates</h2>
+      </div>
+      <div class="more-grid">
+        <div class="more-item"><span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="4" width="20" height="14" rx="2"/><path d="M8 21h8"/></svg></span><span lang-zh>截图与录屏</span><span lang-en>Screenshots & recordings</span></div>
+        <div class="more-item"><span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 7h18M3 12h18M3 17h12"/></svg></span><span lang-zh>连拍与延时废片</span><span lang-en>Burst & timelapse waste</span></div>
+        <div class="more-item"><span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M3 12h18"/></svg></span><span lang-zh>低质量与重复保存图</span><span lang-en>Low-quality re-saves</span></div>
+        <div class="more-item"><span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 3v18M8 7l4-4 4 4"/></svg></span><span lang-zh>大文件视频排序</span><span lang-en>Large videos, sorted</span></div>
+        <div class="more-item"><span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><rect x="3" y="5" width="18" height="14" rx="2"/><circle cx="12" cy="12" r="3"/></svg></span><span lang-zh>实况转静态</span><span lang-en>Live Photo to still</span></div>
+        <div class="more-item"><span class="m-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M4 12a8 8 0 0116 0M4 12l3-3M4 12l3 3M20 12l-3-3M20 12l-3 3"/></svg></span><span lang-zh>长视频压缩</span><span lang-en>Long video compression</span></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- 隐私 -->
+  <section class="privacy" id="privacy">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="kicker" lang-zh>最重要的一条</div><div class="kicker" lang-en>The important one</div>
+        <h2 lang-zh>你的照片，从不离开你的手机</h2>
+        <h2 lang-en>Your photos never leave your phone</h2>
+        <p class="sec-sub" lang-zh>简相册不含任何网络代码。照片从头到尾只在你的 iPhone 上被读取和分析。</p>
+        <p class="sec-sub" lang-en>Simple Album contains no networking code. Photos are read and analyzed on your iPhone and nowhere else.</p>
+      </div>
+      <div class="privacy-grid">
+        <div class="p-card">
+          <div class="p-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="9"/><path d="M3 12h18M12 3a15 15 0 010 18M12 3a15 15 0 000 18"/></svg></div>
+          <b lang-zh>无网络</b><b lang-en>No network</b><span lang-zh>二进制不含网络框架</span><span lang-en>No networking framework</span>
+        </div>
+        <div class="p-card">
+          <div class="p-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M12 2l8 4v6c0 5-3.5 8-8 10-4.5-2-8-5-8-10V6l8-4z"/></svg></div>
+          <b lang-zh>不上传</b><b lang-en>No upload</b><span lang-zh>不经过任何服务器</span><span lang-en>No server involved</span>
+        </div>
+        <div class="p-card">
+          <div class="p-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 3.5-6 8-6s8 2 8 6"/></svg></div>
+          <b lang-zh>无账号</b><b lang-en>No account</b><span lang-zh>无需登录，没有账号体系</span><span lang-en>No sign-in required</span>
+        </div>
+        <div class="p-card">
+          <div class="p-ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"><path d="M3 3l18 18M10.5 10.5a3 3 0 004.2 4.2"/><path d="M9 5h6M5 9v6M19 9v6"/></svg></div>
+          <b lang-zh>无广告与统计</b><b lang-en>No ads or tracking</b><span lang-zh>无广告、无第三方统计 SDK</span><span lang-en>No ads, no analytics SDK</span>
+        </div>
+      </div>
+      <p class="privacy-bottom" lang-zh>想看完整说明？<a href="privacy.html" target="_blank" rel="noopener">阅读隐私政策</a></p>
+      <p class="privacy-bottom" lang-en>Want the full detail? <a href="privacy-en.html" target="_blank" rel="noopener">Read the Privacy Policy</a></p>
+    </div>
+  </section>
+
+  <!-- 定价 -->
+  <section class="pricing" id="pricing">
+    <div class="wrap">
+      <div class="sec-head">
+        <div class="kicker" lang-zh>关于付费</div><div class="kicker" lang-en>On pricing</div>
+        <h2 lang-zh>一次买断，不订阅</h2><h2 lang-en>One-time purchase, never a subscription</h2>
+      </div>
+      <div class="price-card">
+        <div class="price-badge" lang-zh>一次性付费</div><div class="price-badge" lang-en>One-time purchase</div>
+        <div class="price-num">¥5.00</div>
+        <p class="price-desc" lang-zh>一次买断、永久可用，不订阅、不自动续费、不按次收费。支持家人共享。</p>
+        <p class="price-desc" lang-en>Yours to keep. No subscription, no auto-renewal, no per-use charges. Family Sharing supported.</p>
+        <div class="price-split">
+          <div class="price-col free">
+            <b lang-zh>免费 · 不限次数</b><b lang-en>Free · unlimited</b>
+            <ul>
+              <li lang-zh>重复照片与视频</li><li lang-en>Duplicate photos & videos</li>
+              <li lang-zh>截图与录屏</li><li lang-en>Screenshots & recordings</li>
+              <li lang-zh>大文件与视频压缩</li><li lang-en>Large files & compression</li>
+            </ul>
+          </div>
+          <div class="price-col paid">
+            <b lang-zh>买断解锁 · 可先试 50 组</b><b lang-en>Unlock · try 50 groups first</b>
+            <ul>
+              <li lang-zh>相似照片扫描</li><li lang-en>Similar photo scanning</li>
+              <li lang-zh>相似视频扫描</li><li lang-en>Similar video scanning</li>
+              <li lang-zh>本地 AI 算力</li><li lang-en>On-device AI</li>
+            </ul>
+          </div>
+        </div>
+        <p class="price-note" lang-zh>* 实际价格与优惠以 App Store 商店页显示为准。</p>
+        <p class="price-note" lang-en>* Price shown on the App Store listing is authoritative.</p>
+        <a href="#download" class="btn"><span lang-zh>下载简相册</span><span lang-en>Download Simple Album</span></a>
+      </div>
+    </div>
+  </section>
+
+  <!-- 下载 -->
+  <section class="cta" id="download">
+    <div class="wrap">
+      <h2 lang-zh>留下该留的，清掉该清的。</h2>
+      <h2 lang-en>Keep what matters. Clear the rest.</h2>
+      <p lang-zh>iPhone 专属 · iOS 16 及以上 · 全部分析在本机完成</p>
+      <p lang-en>For iPhone · iOS 16 or later · All analysis on device</p>
+      <a href="#" class="download-btn" onclick="return false;">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12M7 10l5 5 5-5M4 20h16"/></svg>
+        <span lang-zh>在 App Store 下载</span><span lang-en>Download on the App Store</span>
+      </a>
+      <p class="cta-note" lang-zh>应用上线后此处替换为 App Store 下载链接</p>
+      <p class="cta-note" lang-en>App Store link will be added here upon release</p>
+    </div>
+  </section>
 
 </main>
+
+<footer>
+  <div class="wrap foot">
+    <div>© 2026 weizeng Li · <span lang-zh>简相册</span><span lang-en>Simple Album</span></div>
+    <div class="foot-links">
+      <a href="privacy.html" target="_blank" rel="noopener"><span lang-zh>隐私政策</span><span lang-en>Privacy</span></a>
+      <a href="support.html" target="_blank" rel="noopener"><span lang-zh>技术支持</span><span lang-en>Support</span></a>
+    </div>
+  </div>
+</footer>
+
+<script>
+  function setLang(lang){
+    document.documentElement.lang = (lang === 'en') ? 'en' : 'zh-CN';
+    document.getElementById('btnZh').classList.toggle('on', lang !== 'en');
+    document.getElementById('btnEn').classList.toggle('on', lang === 'en');
+    document.title = (lang === 'en')
+      ? 'Simple Album - On-device Photo Cleaner'
+      : '简相册 - 清理重复与相似照片';
+  }
+</script>
 </body>
 </html>
